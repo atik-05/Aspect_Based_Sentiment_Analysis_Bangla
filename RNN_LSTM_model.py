@@ -1,5 +1,3 @@
-#source: https://github.com/keras-team/keras/tree/master/examples
-#keras source: https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
 
 import pandas as pd
 import numpy as np
@@ -13,6 +11,7 @@ from keras.models import Model, Input, Sequential
 from keras.layers import Dense, Embedding, GlobalMaxPooling1D, Conv1D, Dropout
 from keras.preprocessing.text import Tokenizer
 from keras.optimizers import Adam
+from keras.layers import LSTM
 
 
 # max_features = 200  # number of words we want to keep
@@ -21,7 +20,7 @@ batch_size = 10  # batch size for the model
 embedding_dims = 50  # dimension of the hidden variable, i.e. the embedding dimension
 filters = 32
 kernel_size = 3
-model_type = 'cnn_rand'
+model_type = 'cnn_static'
 
 logging.basicConfig(filename='data/cnn_log.txt', level=logging.INFO)
 
@@ -143,9 +142,7 @@ else:
     em = Embedding(vocab_size, embedding_dims, input_length=max_document_length)
 
 my_model.add(em)
-my_model.add(Dropout(0.2))
-my_model.add(Conv1D(filters, kernel_size, padding='valid', activation='relu', strides=1))
-my_model.add(GlobalMaxPooling1D())
+my_model.add(LSTM(128, dropout=0.2, recurrent_dropout=0.2))
 my_model.add(Dense(5, activation='sigmoid'))
 my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy'])
 

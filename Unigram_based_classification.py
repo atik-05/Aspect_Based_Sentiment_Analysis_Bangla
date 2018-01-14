@@ -7,8 +7,10 @@ from nltk.stem import PorterStemmer
 import pandas as pd
 from gensim import models
 
-with open('stop_words.txt', 'r') as f:
+with open('data/stop_words.txt', 'r') as f:
     stop_words = [line.rstrip() for line in f]
+
+word2vec_dataset = 'glove'
 
 def clean_str(text):
 
@@ -35,7 +37,6 @@ def stemming(str):
 def word_counter(text):
     text = text.lower()
     text = clean_str(text)
-
     # text = stemming(text)
     word_count = Counter(text)
     return word_count
@@ -67,6 +68,7 @@ def substract_word_count(dictionary1, dictionary2):
         if found == 0:
             word_dict[key1] = value1
     return word_dict
+
 
 def divide_single_label(selected_label, x, y):
     selected_text = []
@@ -109,17 +111,18 @@ def useful_word_for_label(label, x, y):
     useful_words = OrderedDict(sorted(substracted_values.items(), key=lambda kv: kv[1], reverse=True))
     # print('useful words with count: ', useful_words)
 
-    top_useful_words = list(useful_words.keys())[:10]
+    top_useful_words = list(useful_words.keys())[:15]
 
     return top_useful_words
 
 
-reviews = pd.read_csv('restaurant.csv')
+reviews = pd.read_csv('data/restaurant.csv')
 
 x = reviews['text'].values
 y = reviews['category'].values
 length_of_corpus = len(x)
 labels = list(sorted(set(y)))
+print(labels)
 doc_of_classes = ['']*len(labels)
 
 text_of_labels = []
@@ -127,8 +130,8 @@ for label in labels:
     useful_words = useful_word_for_label(label, x, y)
     text_of_labels.append(useful_words)
 
-
-test_review = 'I just wonder how you can have such a delicious meal for such little money.'
+print(text_of_labels)
+test_review = 'I just wonder how you can have such a flavorful meal for such little money.'
 test_review = test_review.lower()
 test_review = clean_str(test_review)
 # test_review = stemming(test_review)
@@ -136,10 +139,18 @@ test_review = clean_str(test_review)
 distances_from_food = []
 distance_from_price = []
 label_distance = {}
-word2vec_model = models.KeyedVectors.load_word2vec_format('glove.txt', binary=False)
 
+if word2vec_dataset == 'google':
+    word2vec_model = models.KeyedVectors.load_word2vec_format('data/GoogleNews.bin', binary=True)
+elif word2vec_dataset == 'glove':
+    word2vec_model = models.KeyedVectors.load_word2vec_format('data/glove.txt', binary=False)
+
+print('word2vec loaded')
+
+matched_words = []
 for i in range(0, len(labels)):
     most_similar_word = ''
+    matched = ''
     most_similar_distance = 0.0
     for base_word in text_of_labels[i]:
         for word in test_review:
@@ -147,10 +158,13 @@ for i in range(0, len(labels)):
             if similarity > most_similar_distance:
                 most_similar_distance = similarity
                 most_similar_word = word
+                matched = base_word
     most_similar_distance = format(most_similar_distance, '.3f')
     label_distance[most_similar_distance] = most_similar_word
+    matched_words.append(matched)
 
-
+print(label_distance)
+print(matched_words)
 print('ok')
 
 
