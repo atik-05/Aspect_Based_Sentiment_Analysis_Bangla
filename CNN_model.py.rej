@@ -1,0 +1,13 @@
+diff a/CNN_model.py b/CNN_model.py	(rejected hunks)
+@@ -21,9 +21,9 @@
+ embedding_dims = 50  # dimension of the hidden variable, i.e. the embedding dimension
+ filters = 32
+ kernel_size = 3
+-model_type = 'cnn_static'
++model_type = 'cnn_rand'
+ 
+-logging.basicConfig(filename='log.txt', level=logging.INFO)
++logging.basicConfig(filename='data/cnn_log.txt', level=logging.INFO)
+ 
+ # source: https://keras.io/metrics/     and   https://www.quora.com/How-do-I-customize-the-decision-threshold-in-Keras-for-training-on-imbalanced-data
+ def accuracy_with_threshold(y_true, y_pred):

@@ -4,6 +4,7 @@
 import pandas as pd
 import numpy as np
 import logging
+from gensim import models
 
 import keras.backend as K
 import keras
@@ -18,18 +19,23 @@ from keras.optimizers import Adam
 # max_features = 200  # number of words we want to keep
 # maxlen = 100  # max length of the comments in the model
 batch_size = 10  # batch size for the model
-embedding_dims = 50  # dimension of the hidden variable, i.e. the embedding dimension
+
 filters = 32
 kernel_size = 3
-model_type = 'cnn_rand'
+model_type = 'cnn_static'         # cnn_static and cnn_rand
+word2vec_dataset = 'data/google_word2vec.txt'     # glove.txt or google_word2vec.txt
+if word2vec_dataset == 'data/glove.txt':
+    embedding_dims = 50
+
+else: embedding_dims = 300
+
 
 logging.basicConfig(filename='data/cnn_log.txt', level=logging.INFO)
 
 # source: https://keras.io/metrics/     and   https://www.quora.com/How-do-I-customize-the-decision-threshold-in-Keras-for-training-on-imbalanced-data
-def accuracy_with_threshold(y_true, y_pred):
-   threshold = 0.7
+def accuracy_with_threshold(y_true, y_pred, threshold):
    y_pred = K.cast(K.greater(y_pred, threshold), K.floatx())
-   return K.mean(K.equal(y_true, y_pred))
+   return K.eval(K.mean(K.equal(y_true, y_pred)))
 
 
 def get_data_and_lebel():
@@ -116,13 +122,13 @@ print('x_test shape:', x_test.shape)
 
 # using word2vec
 embeddings_index = {}
-f = open('data/glove.txt', 'r', encoding='utf8')
-for line in f:
+file = open(word2vec_dataset, 'r', encoding='utf8')
+for line in file:
     values = line.split()
     word = values[0]
     coefs = np.asarray(values[1:], dtype='float32')
     embeddings_index[word] = coefs
-f.close()
+file.close()
 
 print('Found %s word vectors.' % len(embeddings_index))
 
@@ -143,21 +149,15 @@ else:
     em = Embedding(vocab_size, embedding_dims, input_length=max_document_length)
 
 my_model.add(em)
-my_model.add(Dropout(0.2))
 my_model.add(Conv1D(filters, kernel_size, padding='valid', activation='relu', strides=1))
 my_model.add(GlobalMaxPooling1D())
+my_model.add(Dropout(0.2))
 my_model.add(Dense(5, activation='sigmoid'))
 my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy'])
 
-hist = my_model.fit(x_train, y_train, batch_size=batch_size, epochs=5, validation_data=(x_test, y_test))
+hist = my_model.fit(x_train, y_train, batch_size=batch_size, epochs=10, validation_data=(x_test, y_test))
 print(hist.history)
 # logging.info(hist.history)
-
-
-preds = my_model.predict(x_small)
-# preds[preds>=0.5] = 1
-# preds[preds<0.5] = 0
-print(preds)
 
 acc = my_model.evaluate(x_test, y_test)
 testing = my_model.metrics_names
@@ -170,10 +170,21 @@ print('Test accuracy:', acc)
 
 # logging.info('Test score: %f and Test accuracy: %f' %(score, acc))
 
+preds = my_model.predict(x_test)
+# preds[preds>=0.5] = 1
+# preds[preds<0.5] = 0
+print(preds)
+y_test = y_test.astype(np.float32)
+max_accuracy = 0
+optimum_threshold = 0.5
+for i in range(50, 100):
+    th = i/100
+    threshold_accuracy = accuracy_with_threshold(y_test, preds, th)
+    if max_accuracy < threshold_accuracy:
+        max_accuracy = threshold_accuracy
+        optimum_threshold = th
 
-y_small = y_small.astype(np.float32)
-my_accuracy = accuracy_with_threshold(y_small, preds)
-print('my accuracy with threshold: ', K.eval(my_accuracy))
+print('Optimum threshold: %f and accuracy: %.3f' %(optimum_threshold, max_accuracy))
 
 
 

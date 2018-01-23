@@ -1,19 +1,22 @@
 import numpy as np
+#
+# model = KeyedVectors.load_word2vec_format('data/google_news.bin', binary=True)
+# model.save_word2vec_format('data/google_news_text.txt', binary=False)
+# print('loaded....')
 
-my_dict = {}
-my_dict['first'] =10
-my_dict['second'] = 20
-my_dict['third'] = 30
+# embeddings_index = {}
+# file = open('data/google_news_text.txt', 'r', encoding='utf8')
+# file = list(file)
+# file.pop(0)
+#
+# for line in file:
+#     values = line.split()
+#     word = values[0]
+#     coefs = np.asarray(values[1:], dtype='float32')
+#     embeddings_index[word] = coefs
+# file.close()
 
-my_dict.pop('second')
-print(my_dict)
 
-
-ml = []
-ml.append(10)
-ml.append(20)
-ml.append(30)
-ml.append(40)
-
-if 20 and 31 in ml:
-    print(ml)
+embedding_matrix = np.zeros((5, 10))
+print(embedding_matrix)
+print('test')
