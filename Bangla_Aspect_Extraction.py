@@ -22,8 +22,8 @@ batch_size = 10  # batch size for the model
 
 filters = 32
 kernel_size = 3
-model_type = 'cnn_static'         # cnn_static and cnn_rand
-word2vec_dataset = 'data/google_word2vec.txt'     # glove.txt or google_word2vec.txt
+model_type = 'cnn_rand'         # cnn_static and cnn_rand
+word2vec_dataset = 'data/glove.txt'     # glove.txt or google_word2vec.txt
 if word2vec_dataset == 'data/glove.txt':
     embedding_dims = 50
 
@@ -39,9 +39,10 @@ def accuracy_with_threshold(y_true, y_pred, threshold):
 
 
 def get_data_and_lebel():
-    reviews = pd.read_csv('data/restaurant.csv')
+    # reviews = pd.read_csv('data/restaurant.csv')
+    reviews = pd.read_excel('data/laptop_train.xlsx', sheetname='Sheet1')
 
-    x = reviews['text'].values
+    x = reviews['bangla'].values
     y = reviews['category'].values
 
     my_set = list(sorted(set(y)))
@@ -143,7 +144,6 @@ if model_type == 'cnn_static':
             embedding_matrix[i] = np.random.uniform(-0.5, 0.5, embedding_dims)
 
 
-
 my_model = Sequential()
 if model_type == 'cnn_static':
     em = Embedding(len(word_index)+1, embedding_dims, weights=[embedding_matrix], input_length=max_document_length, trainable=False)
@@ -154,7 +154,7 @@ my_model.add(em)
 my_model.add(Conv1D(filters, kernel_size, padding='valid', activation='relu', strides=1))
 my_model.add(GlobalMaxPooling1D())
 my_model.add(Dropout(0.2))
-my_model.add(Dense(5, activation='sigmoid'))
+my_model.add(Dense(9, activation='sigmoid'))
 my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy'])
 
 hist = my_model.fit(x_train, y_train, batch_size=batch_size, epochs=10, validation_data=(x_test, y_test))
@@ -175,7 +175,7 @@ print('Test accuracy:', acc)
 preds = my_model.predict(x_test)
 # preds[preds>=0.5] = 1
 # preds[preds<0.5] = 0
-print(preds)
+# print(preds)
 y_test = y_test.astype(np.float32)
 max_accuracy = 0
 optimum_threshold = 0.5
