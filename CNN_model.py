@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import logging
 from gensim import models
+import tensorflow as tf
 
 import keras.backend as K
 import keras
@@ -22,9 +23,9 @@ batch_size = 10  # batch size for the model
 
 filters = 32
 kernel_size = 3
-model_type = 'cnn_static'         # cnn_static and cnn_rand
-word2vec_dataset = 'data/google_word2vec.txt'     # glove.txt or google_word2vec.txt
-if word2vec_dataset == 'data/glove.txt':
+model_type = 'cnn_rand'         # cnn_static and cnn_rand
+word2vec_dataset = 'data/word_embedding/glove.txt'     # glove.txt or google_word2vec.txt
+if word2vec_dataset == 'data/word_embedding/glove.txt':
     embedding_dims = 50
 
 else: embedding_dims = 300
@@ -37,6 +38,44 @@ def accuracy_with_threshold(y_true, y_pred, threshold):
    y_pred = K.cast(K.greater(y_pred, threshold), K.floatx())
    return K.eval(K.mean(K.equal(y_true, y_pred)))
 
+
+def f1_score(y_true, y_pred):
+    y_pred = tf.convert_to_tensor(y_pred, np.float32)
+
+    # Count positive samples.
+    c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    c3 = K.sum(K.round(K.clip(y_true, 0, 1)))
+
+    # If there are no true samples, fix the F1 score at 0.
+    if c3 == 0:
+        return 0
+
+    # How many selected items are relevant?
+    precision = c1 / c2
+
+    # How many relevant items are selected?
+    recall = c1 / c3
+
+    # Calculate f1_score
+    f1_score = 2 * (precision * recall) / (precision + recall)
+    return f1_score
+
+def precision(y_true, y_pred):
+    y_pred = tf.convert_to_tensor(y_pred, np.float32)
+
+    # Count positive samples.
+    c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    c3 = K.sum(K.round(K.clip(y_true, 0, 1)))
+
+    # If there are no true samples, fix the F1 score at 0.
+    if c3 == 0:
+        return 0
+
+    # How many selected items are relevant?
+    precision = c1 / c2
+    return precision
 
 def get_data_and_lebel():
     reviews = pd.read_csv('data/restaurant.csv')
@@ -155,7 +194,7 @@ my_model.add(Conv1D(filters, kernel_size, padding='valid', activation='relu', st
 my_model.add(GlobalMaxPooling1D())
 my_model.add(Dropout(0.2))
 my_model.add(Dense(5, activation='sigmoid'))
-my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy'])
+my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy', f1_score, precision])
 
 hist = my_model.fit(x_train, y_train, batch_size=batch_size, epochs=10, validation_data=(x_test, y_test))
 print(hist.history)
@@ -187,6 +226,7 @@ for i in range(50, 100):
         optimum_threshold = th
 
 print('Optimum threshold: %f and accuracy: %.3f' %(optimum_threshold, max_accuracy))
+
 
 
 
