@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import logging
 from gensim import models
-import tensorflow as tf
 
 import keras.backend as K
 import keras
@@ -24,8 +23,8 @@ batch_size = 10  # batch size for the model
 filters = 32
 kernel_size = 3
 model_type = 'cnn_rand'         # cnn_static and cnn_rand
-word2vec_dataset = 'data/word_embedding/glove.txt'     # glove.txt or google_word2vec.txt
-if word2vec_dataset == 'data/word_embedding/glove.txt':
+word2vec_dataset = 'data/glove.txt'     # glove.txt or google_word2vec.txt
+if word2vec_dataset == 'data/glove.txt':
     embedding_dims = 50
 
 else: embedding_dims = 300
@@ -39,50 +38,11 @@ def accuracy_with_threshold(y_true, y_pred, threshold):
    return K.eval(K.mean(K.equal(y_true, y_pred)))
 
 
-def f1_score(y_true, y_pred):
-    y_pred = tf.convert_to_tensor(y_pred, np.float32)
-
-
-
-    # Count positive samples.
-    c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    c3 = K.sum(K.round(K.clip(y_true, 0, 1)))
-
-    # If there are no true samples, fix the F1 score at 0.
-    if c3 == 0:
-        return 0
-
-    # How many selected items are relevant?
-    precision = c1 / c2
-
-    # How many relevant items are selected?
-    recall = c1 / c3
-
-    # Calculate f1_score
-    f1_score = 2 * (precision * recall) / (precision + recall)
-    return f1_score
-
-def precision(y_true, y_pred):
-    y_pred = tf.convert_to_tensor(y_pred, np.float32)
-
-    # Count positive samples.
-    c1 = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    c2 = K.sum(K.round(K.clip(y_pred, 0, 1)))
-    c3 = K.sum(K.round(K.clip(y_true, 0, 1)))
-
-    # If there are no true samples, fix the F1 score at 0.
-    if c3 == 0:
-        return 0
-
-    # How many selected items are relevant?
-    precision = c1 / c2
-    return precision
-
 def get_data_and_lebel():
-    reviews = pd.read_csv('data/restaurant.csv')
+    # reviews = pd.read_csv('data/restaurant.csv')
+    reviews = pd.read_excel('data/laptop_train.xlsx', sheetname='Sheet1')
 
-    x = reviews['text'].values
+    x = reviews['bangla'].values
     y = reviews['category'].values
 
     my_set = list(sorted(set(y)))
@@ -184,7 +144,6 @@ if model_type == 'cnn_static':
             embedding_matrix[i] = np.random.uniform(-0.5, 0.5, embedding_dims)
 
 
-
 my_model = Sequential()
 if model_type == 'cnn_static':
     em = Embedding(len(word_index)+1, embedding_dims, weights=[embedding_matrix], input_length=max_document_length, trainable=False)
@@ -195,8 +154,8 @@ my_model.add(em)
 my_model.add(Conv1D(filters, kernel_size, padding='valid', activation='relu', strides=1))
 my_model.add(GlobalMaxPooling1D())
 my_model.add(Dropout(0.2))
-my_model.add(Dense(5, activation='sigmoid'))
-my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy', f1_score, precision])
+my_model.add(Dense(9, activation='sigmoid'))
+my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy'])
 
 hist = my_model.fit(x_train, y_train, batch_size=batch_size, epochs=10, validation_data=(x_test, y_test))
 print(hist.history)
@@ -216,7 +175,7 @@ print('Test accuracy:', acc)
 preds = my_model.predict(x_test)
 # preds[preds>=0.5] = 1
 # preds[preds<0.5] = 0
-print(preds)
+# print(preds)
 y_test = y_test.astype(np.float32)
 max_accuracy = 0
 optimum_threshold = 0.5
@@ -229,8 +188,6 @@ for i in range(50, 100):
 
 print('Optimum threshold: %f and accuracy: %.3f' %(optimum_threshold, max_accuracy))
 
-
-# completely exsecutive
 
 
 print('its done...')
