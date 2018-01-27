@@ -11,24 +11,25 @@ import keras
 
 from keras.preprocessing import sequence
 from keras.models import Model, Input, Sequential
-from keras.layers import Dense, Embedding, GlobalMaxPooling1D, Conv1D, Dropout
+from keras.layers import Dense, Embedding, GlobalMaxPooling1D, Conv1D, Dropout, LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.optimizers import Adam
+import Text_preprocessor
 
 
 # max_features = 200  # number of words we want to keep
 # maxlen = 100  # max length of the comments in the model
 batch_size = 10  # batch size for the model
 
-filters = 32
+filters = 128
 kernel_size = 3
 model_type = 'cnn_rand'         # cnn_static and cnn_rand
 word2vec_dataset = 'data/glove.txt'     # glove.txt or google_word2vec.txt
-if word2vec_dataset == 'data/glove.txt':
-    embedding_dims = 50
-
-else: embedding_dims = 300
-
+embedding_dims = 50
+is_embedding_trainable = False
+model = 'cnn'
+review_dataset = 'data/bangla_laptop.xlsx'
+number_of_category = 9
 
 logging.basicConfig(filename='data/cnn_log.txt', level=logging.INFO)
 
@@ -37,10 +38,27 @@ def accuracy_with_threshold(y_true, y_pred, threshold):
    y_pred = K.cast(K.greater(y_pred, threshold), K.floatx())
    return K.eval(K.mean(K.equal(y_true, y_pred)))
 
+def precision(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    return precision
+
+def recall(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    recall = true_positives / (possible_positives + K.epsilon())
+    return recall
+
+def f1_score(y_true, y_pred):
+    pr = precision(y_true, y_pred)
+    rec = recall(y_true, y_pred)
+    f1_score = 2 * (pr * rec) / (pr + rec)
+    return f1_score
 
 def get_data_and_lebel():
     # reviews = pd.read_csv('data/restaurant.csv')
-    reviews = pd.read_excel('data/laptop_train.xlsx', sheetname='Sheet1')
+    reviews = pd.read_excel(review_dataset, sheetname='Sheet1')
 
     x = reviews['bangla'].values
     y = reviews['category'].values
@@ -84,6 +102,7 @@ def get_data_and_lebel():
 
 
 x, y = get_data_and_lebel()
+x = [Text_preprocessor.clean_bangla_string(text) for text in x]
 max_document_length = max([len(text.split(" ")) for text in x])
 x = np.array(x)
 y = np.array(y)
@@ -144,20 +163,25 @@ if model_type == 'cnn_static':
             embedding_matrix[i] = np.random.uniform(-0.5, 0.5, embedding_dims)
 
 
+
 my_model = Sequential()
 if model_type == 'cnn_static':
-    em = Embedding(len(word_index)+1, embedding_dims, weights=[embedding_matrix], input_length=max_document_length, trainable=False)
+    em = Embedding(len(word_index)+1, embedding_dims, weights=[embedding_matrix], input_length=max_document_length, trainable=is_embedding_trainable)
 else:
     em = Embedding(vocab_size, embedding_dims, input_length=max_document_length)
 
 my_model.add(em)
-my_model.add(Conv1D(filters, kernel_size, padding='valid', activation='relu', strides=1))
-my_model.add(GlobalMaxPooling1D())
-my_model.add(Dropout(0.2))
-my_model.add(Dense(9, activation='sigmoid'))
-my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy'])
+if model == 'cnn':
+    my_model.add(Conv1D(filters, kernel_size, padding='valid', activation='relu', strides=1))
+    my_model.add(GlobalMaxPooling1D())
+else:
+    my_model.add(LSTM(filters, recurrent_dropout=0.2))
 
-hist = my_model.fit(x_train, y_train, batch_size=batch_size, epochs=10, validation_data=(x_test, y_test))
+my_model.add(Dropout(0.2))
+my_model.add(Dense(number_of_category, activation='sigmoid'))
+my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy', precision, recall,  f1_score])
+
+hist = my_model.fit(x_train, y_train, batch_size=batch_size, shuffle=True, epochs=3, validation_data=(x_test, y_test))
 print(hist.history)
 # logging.info(hist.history)
 
@@ -175,7 +199,7 @@ print('Test accuracy:', acc)
 preds = my_model.predict(x_test)
 # preds[preds>=0.5] = 1
 # preds[preds<0.5] = 0
-# print(preds)
+print(preds)
 y_test = y_test.astype(np.float32)
 max_accuracy = 0
 optimum_threshold = 0.5
