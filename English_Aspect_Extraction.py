@@ -23,14 +23,15 @@ import Text_preprocessor
 batch_size = 10  # batch size for the model
 train_percentage = 0.9
 filters = 128
-kernel_size = 3
+kernel_size = 2
 model_type = 'cnn_static'         # cnn_static and cnn_rand
-word2vec_dataset = 'data/word_embedding/glove.txt'     # glove.txt or google_word2vec.txt
-embedding_dims = 50
-review_dataset = 'data/Restaurant_full.csv'
-is_embedding_trainable = True
+word2vec_dataset = 'data/word_embedding/google_word2vec.txt'     # glove.txt or google_word2vec.txt
+embedding_dims = 300
+review_dataset = 'data/Laptop_full.csv'         # Restaurant_full.csv or Laptop_full.csv
+is_embedding_trainable = False
 model = 'cnn'
-number_of_category = 5
+number_of_category = 9
+number_of_epoch = 10
 
 
 logging.basicConfig(filename='data/cnn_log.txt', level=logging.INFO)
@@ -59,7 +60,7 @@ def f1_score(y_true, y_pred):
     return f1_score
 
 def get_data_and_lebel():
-    reviews = pd.read_csv(review_dataset)
+    reviews = pd.read_csv(review_dataset, encoding='ISO-8859-1')
 
     x = reviews['text'].values
     y = reviews['category'].values
@@ -181,7 +182,7 @@ my_model.add(Dropout(0.2))
 my_model.add(Dense(number_of_category, activation='sigmoid'))
 my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy', precision, recall,  f1_score])
 
-hist = my_model.fit(x_train, y_train, batch_size=batch_size, shuffle=True, epochs=3, validation_data=(x_test, y_test))
+hist = my_model.fit(x_train, y_train, batch_size=batch_size, shuffle=True, epochs=number_of_epoch, validation_data=(x_test, y_test))
 print(hist.history)
 # logging.info(hist.history)
 
