@@ -24,14 +24,19 @@ batch_size = 10  # batch size for the model
 train_percentage = 0.9
 filters = 128
 kernel_size = 2
-model_type = 'cnn_static'         # cnn_static and cnn_rand
+model_type = 'static'         # static or random
 word2vec_dataset = 'data/word_embedding/google_word2vec.txt'     # glove.txt or google_word2vec.txt
 embedding_dims = 300
 review_dataset = 'data/Laptop_full.csv'         # Restaurant_full.csv or Laptop_full.csv
-is_embedding_trainable = False
+is_embedding_trainable = True
 model = 'cnn'
-number_of_category = 9
+
 number_of_epoch = 10
+
+if review_dataset == 'data/Restaurant_full.csv':
+    number_of_category = 5
+else:
+    number_of_category = 9
 
 
 logging.basicConfig(filename='data/cnn_log.txt', level=logging.INFO)
@@ -141,7 +146,7 @@ print('x_train shape:', x_train.shape)
 print('x_test shape:', x_test.shape)
 
 
-if model_type == 'cnn_static':
+if model_type == 'static':
     # using word2vec
     embeddings_index = {}
     file = open(word2vec_dataset, 'r', encoding='utf8')
@@ -166,7 +171,7 @@ if model_type == 'cnn_static':
 
 
 my_model = Sequential()
-if model_type == 'cnn_static':
+if model_type == 'static':
     em = Embedding(len(word_index)+1, embedding_dims, weights=[embedding_matrix], input_length=max_document_length, trainable=is_embedding_trainable)
 else:
     em = Embedding(vocab_size, embedding_dims, input_length=max_document_length)
