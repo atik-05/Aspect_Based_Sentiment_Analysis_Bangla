@@ -15,23 +15,26 @@ from keras.layers import Dense, Embedding, GlobalMaxPooling1D, Conv1D, Dropout, 
 from keras.preprocessing.text import Tokenizer
 from keras.optimizers import Adam
 import Text_preprocessor
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
 
 
 # max_features = 200  # number of words we want to keep
 # maxlen = 100  # max length of the comments in the model
-batch_size = 10  # batch size for the model
+batch_size = 30  # batch size for the model
 
 filters = 128
 kernel_size = 3
-model_type = 'cnn_rand'         # cnn_static and cnn_rand
-word2vec_dataset = 'data/glove.txt'     # glove.txt or google_word2vec.txt
-embedding_dims = 50
+model_type = 'cnn_static'         # cnn_static and cnn_rand
+word2vec_dataset = 'data/word_embeddings/bangla_wv_cbow_window5_min4.txt'     # bangla_wv_cbow_window5_min4.txt or bangla_wv_cbow_window3_min2.txt
+embedding_dims = 100
 is_embedding_trainable = False
 model = 'cnn'
-review_dataset = 'data/bangla_laptop.xlsx'
-number_of_category = 9
+review_dataset = 'data/cricket.xlsx'
+number_of_category = 5
+number_of_epoch = 10
 
-logging.basicConfig(filename='data/cnn_log.txt', level=logging.INFO)
+logging.basicConfig(filename='data/log.txt', level=logging.INFO)
 
 # source: https://keras.io/metrics/     and   https://www.quora.com/How-do-I-customize-the-decision-threshold-in-Keras-for-training-on-imbalanced-data
 def accuracy_with_threshold(y_true, y_pred, threshold):
@@ -56,12 +59,18 @@ def f1_score(y_true, y_pred):
     f1_score = 2 * (pr * rec) / (pr + rec)
     return f1_score
 
+def evaluate_model_individual(target_true,target_predicted):
+    report = classification_report(target_true,target_predicted)
+    print (report)
+    logging.info(report)
+    print ("The accuracy score is {:.2%}".format(accuracy_score(target_true,target_predicted)))
+
 def get_data_and_lebel():
     # reviews = pd.read_csv('data/restaurant.csv')
     reviews = pd.read_excel(review_dataset, sheetname='Sheet1')
 
-    x = reviews['bangla'].values
-    y = reviews['category'].values
+    x = reviews['Text'].values
+    y = reviews['Label'].values
 
     my_set = list(sorted(set(y)))
     label = np.zeros(len(my_set))
@@ -181,7 +190,7 @@ my_model.add(Dropout(0.2))
 my_model.add(Dense(number_of_category, activation='sigmoid'))
 my_model.compile(loss='binary_crossentropy', optimizer=Adam(0.01), metrics=['accuracy', precision, recall,  f1_score])
 
-hist = my_model.fit(x_train, y_train, batch_size=batch_size, shuffle=True, epochs=3, validation_data=(x_test, y_test))
+hist = my_model.fit(x_train, y_train, batch_size=batch_size, shuffle=True, epochs=number_of_epoch, validation_data=(x_test, y_test))
 print(hist.history)
 # logging.info(hist.history)
 
@@ -191,6 +200,10 @@ print('metrics name: ', testing)
 
 # print('Test score:', score)
 print('Test accuracy:', acc)
+
+logging.info(testing)
+logging.info(acc)
+logging.info('....')
 
 # print ('keras prediction', K.eval(keras.metrics.binary_accuracy(x_small, y_small)))
 
@@ -212,6 +225,10 @@ for i in range(50, 100):
 
 print('Optimum threshold: %f and accuracy: %.3f' %(optimum_threshold, max_accuracy))
 
+y_test = y_test.astype(int)
+preds[preds>=0.5] = 1
+preds[preds<0.5] = 0
+evaluate_model_individual(y_test, preds)
 
 
 print('its done...')

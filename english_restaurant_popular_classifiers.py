@@ -13,7 +13,7 @@ from sklearn.neighbors import KNeighborsClassifier
 
 
 
-review_dataset = 'restaurant.csv'
+review_dataset = 'data/restaurant.csv'
 
 number_of_category = 5
 train_percentage = 0.8

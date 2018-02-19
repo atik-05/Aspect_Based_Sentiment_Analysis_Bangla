@@ -42,8 +42,8 @@ print('total number of words: ', number_of_words)
 
 text = [word_tokenize(i) for i in bangla_corpus]
 
-model = models.Word2Vec(text, size=100, window=5, min_count=4, sg=1)
-model.wv.save_word2vec_format('data/word_embeddings/bangla_wv_sg_window5_min4.txt', binary=False)
+model = models.Word2Vec(text, size=50, window=5, min_count=4, sg=1)
+model.wv.save_word2vec_format('data/word_embeddings/bangla_sg_50.txt', binary=False)
 print('bangla model created')
 
 logging.info('present word vectors is created named bangla_wv_cbow_window5_min4 at %s...' %datetime.now() )
